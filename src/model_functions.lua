@@ -106,7 +106,7 @@ function build_encoder_stack(recurrence, embeddings)
         enc:add(nn.SplitTable(1, 2))
     end
     -- enc:add(nn.SelectTable(-1))
-    enc:add(nn.Select(1,-1))
+    enc:add(nn.Select(2,-1))
 
     return enc, enc_rnn
 end
