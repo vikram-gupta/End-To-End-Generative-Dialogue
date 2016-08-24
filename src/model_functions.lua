@@ -86,6 +86,7 @@ function build_encoder_stack(recurrence, embeddings)
         if i == 1 and embeddings ~= nil then inp = opt.word_vec_size end
 
         local rnn = recurrence(inp, opt.hidden_size)
+        rnn.batchfirst = false
         enc:add(add_sequencer(rnn))
 
         if i == opt.num_layers then
@@ -106,7 +107,7 @@ function build_encoder_stack(recurrence, embeddings)
         enc:add(nn.SplitTable(1, 2))
     end
     -- enc:add(nn.SelectTable(-1))
-    enc:add(nn.Select(2,-1))
+    enc:add(nn.Select(1,-1))
 
     return enc, enc_rnn
 end
@@ -161,7 +162,7 @@ function build_decoder(recurrence)
         if i == 1 then inp = opt.word_vec_size end
 
         local rnn = recurrence(inp, opt.hidden_size)
-        rnn.batchfirst = true
+        rnn.batchfirst = false
         dec:add(add_sequencer(rnn))
         if i == 1 then -- Save initial layer of decoder
             dec_rnn = rnn
@@ -351,6 +352,8 @@ function train_ind(ind, m, criterion, data)
     local batch_l, target_l, source_l = d[5], d[6], d[7]
     if opt.model_type == 'hred' then source_l = opt.utter_context end
 
+    source = source:t()
+    target = target:t()
     -- Forward prop enc
     local enc_out = m.enc:forward(source)
     forward_connect(m.enc_rnn, m.dec_rnn, source_l)
