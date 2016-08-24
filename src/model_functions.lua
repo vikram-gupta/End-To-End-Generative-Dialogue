@@ -149,7 +149,7 @@ function build_decoder(recurrence)
     dec:add(dec_embeddings)
 
     if opt.layer_type ~= 'bi' then
-        dec:add(nn.SplitTable(1, 2))
+        -- dec:add(nn.SplitTable(1, 2))
     else
         -- Decoder is not bidirectional
         recurrence = nn.SeqLSTM
