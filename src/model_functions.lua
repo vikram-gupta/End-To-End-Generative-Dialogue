@@ -11,7 +11,7 @@ function forward_connect(enc_rnn, dec_rnn, seq_length)
     if opt.layer_type == 'bi' then
         enc_fwd_seqLSTM = enc_rnn['modules'][1]['modules'][2]['modules'][1]
         enc_bwd_seqLSTM = enc_rnn['modules'][1]['modules'][2]['modules'][2]['modules'][2]
-        
+
         dec_rnn.userPrevOutput = enc_rnn.output[{{},seq_length}]
         dec_rnn.userPrevCell = enc_bwd_seqLSTM.cell[seq_length]
     else
@@ -77,7 +77,7 @@ function build_encoder_stack(recurrence, embeddings)
     if embeddings ~= nil then enc:add(embeddings) end
 
     if opt.layer_type ~= 'bi' then
-        enc:add(nn.SplitTable(1, 2))
+        -- enc:add(nn.SplitTable(1, 2))
     end
 
     local enc_rnn
@@ -105,7 +105,8 @@ function build_encoder_stack(recurrence, embeddings)
     if opt.layer_type == 'bi' then
         enc:add(nn.SplitTable(1, 2))
     end
-    enc:add(nn.SelectTable(-1))
+    -- enc:add(nn.SelectTable(-1))
+    enc:add(nn.Select(1,-1))
 
     return enc, enc_rnn
 end
@@ -126,7 +127,7 @@ function build_hred_encoder(recurrence)
     for i = 1, opt.utter_context do
         local utterance_rnn = build_encoder_stack(recurrence, enc_embeddings)
         utterance_rnn:add(nn.Unsqueeze(2))
-        if opt.load_red then 
+        if opt.load_red then
             table.insert(utterance_rnns, utterance_rnn)
         end
         par:add(utterance_rnn)
@@ -138,7 +139,7 @@ function build_hred_encoder(recurrence)
     -- Build context rnn
     local context_rnn, enc_rnn = build_encoder_stack(recurrence, nil)
     enc:add(context_rnn)
-    
+
     return enc, enc_rnn, enc_embeddings, utterance_rnns
 end
 
@@ -146,7 +147,7 @@ function build_decoder(recurrence)
     local dec = nn.Sequential()
     local dec_embeddings = nn.LookupTable(opt.vocab_size_dec, opt.word_vec_size)
     dec:add(dec_embeddings)
-    
+
     if opt.layer_type ~= 'bi' then
         dec:add(nn.SplitTable(1, 2))
     else
@@ -213,7 +214,7 @@ function build()
     local criterion = nn.SequencerCriterion(nn.ClassNLLCriterion())
 
     local enc, enc_rnn, enc_embeddings, dec, dec_rnn, dec_embeddings
-    if opt.train_from:len() == 0 then   
+    if opt.train_from:len() == 0 then
         -- Encoder, enc_rnn is top rnn in vertical enc stack
         enc, enc_rnn, enc_embeddings = build_encoder(recurrence)
 
@@ -233,7 +234,7 @@ function build()
         enc = model[1]:double()
         dec = model[2]:double()
         enc_rnn = model[3]:double()
-        dec_rnn = model[4]:double() 
+        dec_rnn = model[4]:double()
         enc_embeddings = enc['modules'][1]:double()
         dec_embeddings = dec['modules'][1]:double()
 
@@ -244,7 +245,7 @@ function build()
 
             -- Encoder, enc_rnn is top rnn in vertical enc stack
             enc, enc_rnn, enc_embeddings, utterance_rnns = build_encoder(recurrence)
-        
+
             for i = 1, #utterance_rnns do
                 p, _ = utterance_rnns[i]:getParameters()
                 p:copy(enc_red_p)
@@ -402,7 +403,7 @@ function train_ind(ind, m, criterion, data)
         m.enc_embeddings.gradWeight:zero()
         m.dec_embeddings.gradWeight:zero()
     end
-    
+
     if opt.parallel then
         return {gps = m.grad_params, batch_l = batch_l, target_l = target_l, source_l = source_l, nonzeros = nonzeros, loss = loss, param_norm = param_norm, grad_norm = grad_norm}
     else
@@ -424,14 +425,14 @@ function train(m, criterion, train_data, valid_data)
             if type(layer.output) ~= 'table' then
                 layer.output = torch.CudaTensor()
             end
-            if type(layer.gradInput) ~= 'table' then 
+            if type(layer.gradInput) ~= 'table' then
                 layer.gradInput = torch.CudaTensor()
             end
         else
             if type(layer.output) ~= 'table' then
                 layer.output = torch.DoubleTensor()
             end
-            if type(layer.gradInput) ~= 'table' then 
+            if type(layer.gradInput) ~= 'table' then
                 layer.gradInput = torch.DoubleTensor()
             end
         end
@@ -448,7 +449,7 @@ function train(m, criterion, train_data, valid_data)
         if epoch >= opt.start_decay_at then
             start_decay = 1
         end
-        
+
         if opt.val_perf[#opt.val_perf] ~= nil and opt.val_perf[#opt.val_perf-1] ~= nil then
             local curr_ppl = opt.val_perf[#opt.val_perf]
             local prev_ppl = opt.val_perf[#opt.val_perf-1]
@@ -468,11 +469,11 @@ function train(m, criterion, train_data, valid_data)
         local start_time = timer:time().real
         local num_words_target = 0
         local num_words_source = 0
-        
+
         if break_start ~= nil then
             ignore_time = ignore_time + (timer:time().real - break_start)
         end
-        
+
         local i = 1
 
          for j = 1, skip do
@@ -507,7 +508,7 @@ function train(m, criterion, train_data, valid_data)
                             if opt.ada_grad then
                                 historical_grad[k]:add(torch.cmul(reply.gps[k], reply.gps[k]))
                                 m.params[k]:add(-1,  torch.cmul(reply.gps[k], torch.cdiv(l_r[k], torch.sqrt(fudge[k] + historical_grad[k]))))
-                            else   
+                            else
                                 m.params[k]:add(-opt.learning_rate, reply.gps[k])
                             end
                         end
@@ -526,7 +527,7 @@ function train(m, criterion, train_data, valid_data)
 
                         batch_l, target_l, source_l, nonzeros, loss, param_norm, grad_norm =  reply.batch_l, reply.target_l, reply.source_l, reply.nonzeros, reply.loss, reply.param_norm, reply.grad_norm
                     end
-                    
+
                 end
                 local time_taken = timer:time().real - start_time
                 if i % opt.print_every == 0  and batch_l ~= nil then
@@ -551,9 +552,9 @@ function train(m, criterion, train_data, valid_data)
                 for k = 1, #m.params do
                     if opt.ada_grad then
                         historical_grad[k]:add(torch.cmul(m.grad_params[k],m.grad_params[k]))
-                   
+
                         m.params[k]:add(-1,  torch.cmul(m.grad_params[k], torch.cdiv(l_r[k], torch.sqrt(fudge[k] + historical_grad[k]))))
-                    else   
+                    else
                         m.params[k]:add(-opt.learning_rate, m.grad_params[k])
                     end
 
@@ -568,7 +569,7 @@ function train(m, criterion, train_data, valid_data)
                 train_nonzeros = train_nonzeros + nonzeros
                 train_loss = train_loss + loss * batch_l
 
-                i = i + 1  
+                i = i + 1
                 local time_taken = timer:time().real - start_time
 
                 if i % opt.print_every == 0 then
@@ -626,7 +627,7 @@ function train(m, criterion, train_data, valid_data)
             end
         end
     end
-    
+
     break_start = nil
     ignore_time = 0
 
@@ -665,7 +666,7 @@ function calc_bleu_score(beam_results, target)
     local bleu_scores = torch.zeros(opt.beam_k)
 
     -- For each of the beam examples
-    for i = 1, opt.beam_k do 
+    for i = 1, opt.beam_k do
         local pred = beam_results[i]
 
         local scores = torch.zeros(opt.max_bleu)
@@ -727,7 +728,7 @@ function calc_bleu_score(beam_results, target)
                 end
             end
 
-            local score 
+            local score
             if pred:size(1) <= j then
                 score = 1
             else
@@ -751,7 +752,7 @@ end
 
 function calc_error_rate(beam_results, target)
     local error_rates = torch.zeros(opt.beam_k)
-    for i = 1, opt.beam_k do 
+    for i = 1, opt.beam_k do
         local pred = beam_results[i]
         local total_wrong = 0
         for j = 1, torch.min(pred:size(1), target:size(1)) do
