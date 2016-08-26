@@ -69,6 +69,7 @@ local function get_scores(m, source, cur_beam, layer_type)
     -- Forward prop enc + dec
     local enc_out = m.enc:forward(source)
     forward_connect(m.enc_rnn, m.dec_rnn, source_l, layer_type)
+
     local preds = m.dec:forward(cur_beam)
 
     -- Return log probability distribution for all words
@@ -118,15 +119,14 @@ function beam:generate(K, source, gold)
         if full then break end
 
         local cur_beam = hyps[i]:narrow(2, 1, i)
-        -- print(cur_beam)
+
         local cur_K = K
 
         -- Score all next words for each context in the beam
         -- log p(y_{i+1} | y_c, x) for all y_c
-
         local all = get_scores(self.m, source, cur_beam, self.opt.layer_type)
 
-        local out = all[#all]
+        local out = all[all:size(1)]
 
         -- Only take first row when starting out as all predictions are same
         if i == 1 then

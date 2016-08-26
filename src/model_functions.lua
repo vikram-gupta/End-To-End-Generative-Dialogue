@@ -72,8 +72,13 @@ end
 -- Structure
 ------------
 
-function build_encoder_stack(recurrence, embeddings)
+function build_encoder_stack(recurrence, embeddings,transposeInput)
     local enc = nn.Sequential()
+
+    if transposeInput then
+        enc:add(nn.Transpose(1,2))
+    end
+
     if embeddings ~= nil then enc:add(embeddings) end
 
     if opt.layer_type ~= 'bi' then
@@ -112,9 +117,9 @@ function build_encoder_stack(recurrence, embeddings)
     return enc, enc_rnn
 end
 
-function build_encoder(recurrence)
+function build_encoder(recurrence,transposeInput)
     local enc_embeddings = nn.LookupTable(opt.vocab_size_enc, opt.word_vec_size)
-    local enc, enc_rnn = build_encoder_stack(recurrence, enc_embeddings)
+    local enc, enc_rnn = build_encoder_stack(recurrence, enc_embeddings,transposeInput)
     return enc, enc_rnn, enc_embeddings
 end
 
@@ -144,8 +149,13 @@ function build_hred_encoder(recurrence)
     return enc, enc_rnn, enc_embeddings, utterance_rnns
 end
 
-function build_decoder(recurrence)
+function build_decoder(recurrence,transposeInput)
     local dec = nn.Sequential()
+
+    if transposeInput then
+        dec:add(nn.Transpose(1,2))
+    end
+
     local dec_embeddings = nn.LookupTable(opt.vocab_size_dec, opt.word_vec_size)
     dec:add(dec_embeddings)
 
@@ -217,10 +227,10 @@ function build()
     local enc, enc_rnn, enc_embeddings, dec, dec_rnn, dec_embeddings
     if opt.train_from:len() == 0 then
         -- Encoder, enc_rnn is top rnn in vertical enc stack
-        enc, enc_rnn, enc_embeddings = build_encoder(recurrence)
+        enc, enc_rnn, enc_embeddings = build_encoder(recurrence,transposeInput)
 
         -- Decoder, dec_rnn is lowest rnn in vertical dec stack
-        dec, dec_rnn, dec_embeddings = build_decoder(recurrence)
+        dec, dec_rnn, dec_embeddings = build_decoder(recurrence,transposeInput)
     else
         -- Frequently the models have CudaTensors, need to load and convert to doubles
         require 'cunn'
@@ -245,7 +255,7 @@ function build()
             local enc_embeddings_red_p, _ = enc_embeddings:getParameters()
 
             -- Encoder, enc_rnn is top rnn in vertical enc stack
-            enc, enc_rnn, enc_embeddings, utterance_rnns = build_encoder(recurrence)
+            enc, enc_rnn, enc_embeddings, utterance_rnns = build_encoder(recurrence,transposeInput)
 
             for i = 1, #utterance_rnns do
                 p, _ = utterance_rnns[i]:getParameters()
@@ -469,6 +479,7 @@ function train(m, criterion, train_data, valid_data)
         local train_nonzeros = 0
         local train_loss = 0
         local batch_order = torch.randperm(data.length) -- Shuffle that ish
+
         local start_time = timer:time().real
         local num_words_target = 0
         local num_words_source = 0
@@ -547,6 +558,7 @@ function train(m, criterion, train_data, valid_data)
                 end
                 sys.sleep(.5)
             else
+                rec = rec + 1
                 local batch_l, target_l, source_l, nonzeros, loss, param_norm, grad_norm
                 batch_l, target_l, source_l, nonzeros, loss, param_norm, grad_norm = train_ind(batch_order[i], m, criterion, train_data)
 
@@ -787,6 +799,7 @@ function eval(m, criterion, data)
 
         -- Forward prop enc
         local enc_out = m.enc:forward(source)
+
         forward_connect(m.enc_rnn, m.dec_rnn, source_l)
 
         -- Forward prop dec

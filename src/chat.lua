@@ -4,7 +4,7 @@ local stringx = require 'pl.stringx'
 
 require 'beam'
 require 'dict'
-
+require 'cunn'
 ------------
 -- Options
 ------------
