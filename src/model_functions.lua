@@ -72,10 +72,10 @@ end
 -- Structure
 ------------
 
-function build_encoder_stack(recurrence, embeddings,transposeInput)
+function build_encoder_stack(recurrence, embeddings,batchFirstDimension)
     local enc = nn.Sequential()
-
-    if transposeInput then
+    print(batchFirstDimension)
+    if batchFirstDimension then
         enc:add(nn.Transpose(1,2))
     end
 
@@ -117,9 +117,9 @@ function build_encoder_stack(recurrence, embeddings,transposeInput)
     return enc, enc_rnn
 end
 
-function build_encoder(recurrence,transposeInput)
+function build_encoder(recurrence,batchFirstDimension)
     local enc_embeddings = nn.LookupTable(opt.vocab_size_enc, opt.word_vec_size)
-    local enc, enc_rnn = build_encoder_stack(recurrence, enc_embeddings,transposeInput)
+    local enc, enc_rnn = build_encoder_stack(recurrence, enc_embeddings,batchFirstDimension)
     return enc, enc_rnn, enc_embeddings
 end
 
@@ -149,10 +149,10 @@ function build_hred_encoder(recurrence)
     return enc, enc_rnn, enc_embeddings, utterance_rnns
 end
 
-function build_decoder(recurrence,transposeInput)
+function build_decoder(recurrence,batchFirstDimension)
     local dec = nn.Sequential()
-
-    if transposeInput then
+print(batchFirstDimension)
+    if batchFirstDimension then
         dec:add(nn.Transpose(1,2))
     end
 
@@ -227,10 +227,10 @@ function build()
     local enc, enc_rnn, enc_embeddings, dec, dec_rnn, dec_embeddings
     if opt.train_from:len() == 0 then
         -- Encoder, enc_rnn is top rnn in vertical enc stack
-        enc, enc_rnn, enc_embeddings = build_encoder(recurrence,transposeInput)
+        enc, enc_rnn, enc_embeddings = build_encoder(recurrence,opt.batch_first_dimension)
 
         -- Decoder, dec_rnn is lowest rnn in vertical dec stack
-        dec, dec_rnn, dec_embeddings = build_decoder(recurrence,transposeInput)
+        dec, dec_rnn, dec_embeddings = build_decoder(recurrence,opt.batch_first_dimension)
     else
         -- Frequently the models have CudaTensors, need to load and convert to doubles
         require 'cunn'
@@ -255,7 +255,7 @@ function build()
             local enc_embeddings_red_p, _ = enc_embeddings:getParameters()
 
             -- Encoder, enc_rnn is top rnn in vertical enc stack
-            enc, enc_rnn, enc_embeddings, utterance_rnns = build_encoder(recurrence,transposeInput)
+            enc, enc_rnn, enc_embeddings, utterance_rnns = build_encoder(recurrence,opt.batch_first_dimension)
 
             for i = 1, #utterance_rnns do
                 p, _ = utterance_rnns[i]:getParameters()

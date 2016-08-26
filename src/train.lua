@@ -98,7 +98,7 @@ cmd:option('-extension',       '',   'The location from the home directory to th
 cmd:option('-username',       'michaelfarrell',   'The username for connecting to remote clients')
 cmd:option('-add_to_path' ,     '/home/michaelfarrell/Distributed-SGD/lua-lua/End-To-End-Generative-Dialogue/src/?.lua;',  'A string that will be appended on to the front of the path')
 cmd:option('-wait',         200,  'Waits to parallelize until below this threshold')
-
+cmd:option('-batch_first_dimension', true,'If the input has been formatted to use the first dimension as batch, set this to true')
 -- Used to update the path variable
 require 'package'
 
