@@ -74,9 +74,9 @@ end
 
 function build_encoder_stack(recurrence, embeddings,batchFirstDimension)
     local enc = nn.Sequential()
-    print(batchFirstDimension)
+
     if batchFirstDimension then
-        enc:add(nn.Transpose(1,2))
+        enc:add(nn.Transpose({1,2}))
     end
 
     if embeddings ~= nil then enc:add(embeddings) end
@@ -151,9 +151,9 @@ end
 
 function build_decoder(recurrence,batchFirstDimension)
     local dec = nn.Sequential()
-print(batchFirstDimension)
+
     if batchFirstDimension then
-        dec:add(nn.Transpose(1,2))
+        dec:add(nn.Transpose({1,2}))
     end
 
     local dec_embeddings = nn.LookupTable(opt.vocab_size_dec, opt.word_vec_size)
@@ -362,8 +362,6 @@ function train_ind(ind, m, criterion, data)
     local batch_l, target_l, source_l = d[5], d[6], d[7]
     if opt.model_type == 'hred' then source_l = opt.utter_context end
 
-    source = source:t()
-    target = target:t()
     -- Forward prop enc
     local enc_out = m.enc:forward(source)
     forward_connect(m.enc_rnn, m.dec_rnn, source_l)
