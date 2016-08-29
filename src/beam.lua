@@ -109,7 +109,10 @@ function beam:generate(K, source, gold)
     local full = false
     local result = {}
     local scores = torch.zeros(n + 1, K):float()
-    local hyps = torch.zeros(n + 1, K, n + 1):long()
+    -- local hyps = torch.zeros(n + 1, K, n + 1):long()
+    local hyps = torch.zeros(n + 1, K, n + 1)
+    source = source:double()
+
     hyps:fill(START)
 
     local lambda = self.opt.lambda
@@ -124,6 +127,7 @@ function beam:generate(K, source, gold)
 
         -- Score all next words for each context in the beam
         -- log p(y_{i+1} | y_c, x) for all y_c
+
         local all = get_scores(self.m, source, cur_beam, self.opt.layer_type)
 
         local out = all[all:size(1)]
