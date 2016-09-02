@@ -62,6 +62,7 @@ end
 function build_context(dialogue, length)
     local ctx = torch.LongTensor(1)
     local start = 1
+    -- add the <s> and </s>
     if #dialogue == 1 then return pad_both(dialogue[1]) end
     if #dialogue > length then start = #dialogue - length + 1 end
     
@@ -84,7 +85,7 @@ function chat(sbeam)
 
 	local dialogue = {}
 	local chatting = true
-    local ctx_length = 2 -- For MovieTriples, use 2 prior utterances
+    local ctx_length = 1 -- For MovieTriples, use 2 prior utterances
 
     while chatting do
         -- Get next user input
@@ -96,6 +97,7 @@ function chat(sbeam)
         until response ~= nil and strip(response) ~= ''
 
         local prepped = prep_input(response)
+
         table.insert(dialogue, prepped)
 
         -- Generate contextual response
