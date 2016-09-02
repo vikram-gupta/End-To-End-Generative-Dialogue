@@ -66,6 +66,18 @@ local function get_scores(m, source, cur_beam, layer_type)
     source = source:contiguous()
     source = source:view(1, -1):expand(cur_beam:size(1), source_l)
 
+    source = source:t()
+    target = target:t()
+
+    decoding = false
+    if decoding then
+        source = source:cuda()
+        cur_beam = cur_beam:cuda()
+    else
+        source = source:double()
+        cur_beam = cur_beam:double()
+    end
+
     -- Forward prop enc + dec
     local enc_out = m.enc:forward(source)
     forward_connect(m.enc_rnn, m.dec_rnn, source_l, layer_type)
@@ -111,7 +123,6 @@ function beam:generate(K, source, gold)
     local scores = torch.zeros(n + 1, K):float()
     -- local hyps = torch.zeros(n + 1, K, n + 1):long()
     local hyps = torch.zeros(n + 1, K, n + 1)
-    source = source:double()
 
     hyps:fill(START)
 

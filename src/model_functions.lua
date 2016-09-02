@@ -72,12 +72,8 @@ end
 -- Structure
 ------------
 
-function build_encoder_stack(recurrence, embeddings,batchFirstDimension)
+function build_encoder_stack(recurrence, embeddings)
     local enc = nn.Sequential()
-
-    if batchFirstDimension then
-        enc:add(nn.Transpose({1,2}))
-    end
 
     if embeddings ~= nil then enc:add(embeddings) end
 
@@ -117,9 +113,9 @@ function build_encoder_stack(recurrence, embeddings,batchFirstDimension)
     return enc, enc_rnn
 end
 
-function build_encoder(recurrence,batchFirstDimension)
+function build_encoder(recurrence)
     local enc_embeddings = nn.LookupTable(opt.vocab_size_enc, opt.word_vec_size)
-    local enc, enc_rnn = build_encoder_stack(recurrence, enc_embeddings,batchFirstDimension)
+    local enc, enc_rnn = build_encoder_stack(recurrence, enc_embeddings)
     return enc, enc_rnn, enc_embeddings
 end
 
@@ -149,12 +145,8 @@ function build_hred_encoder(recurrence)
     return enc, enc_rnn, enc_embeddings, utterance_rnns
 end
 
-function build_decoder(recurrence,batchFirstDimension)
+function build_decoder(recurrence)
     local dec = nn.Sequential()
-
-    if batchFirstDimension then
-        dec:add(nn.Transpose({1,2}))
-    end
 
     local dec_embeddings = nn.LookupTable(opt.vocab_size_dec, opt.word_vec_size)
     dec:add(dec_embeddings)
@@ -227,10 +219,10 @@ function build()
     local enc, enc_rnn, enc_embeddings, dec, dec_rnn, dec_embeddings
     if opt.train_from:len() == 0 then
         -- Encoder, enc_rnn is top rnn in vertical enc stack
-        enc, enc_rnn, enc_embeddings = build_encoder(recurrence,opt.batch_first_dimension)
+        enc, enc_rnn, enc_embeddings = build_encoder(recurrence)
 
         -- Decoder, dec_rnn is lowest rnn in vertical dec stack
-        dec, dec_rnn, dec_embeddings = build_decoder(recurrence,opt.batch_first_dimension)
+        dec, dec_rnn, dec_embeddings = build_decoder(recurrence)
     else
         -- Frequently the models have CudaTensors, need to load and convert to doubles
         require 'cunn'
