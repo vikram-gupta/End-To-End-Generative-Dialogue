@@ -354,6 +354,9 @@ function train_ind(ind, m, criterion, data)
     local batch_l, target_l, source_l = d[5], d[6], d[7]
     if opt.model_type == 'hred' then source_l = opt.utter_context end
 
+    source = source:t()
+    target = target:t()
+
     -- Forward prop enc
     local enc_out = m.enc:forward(source)
     forward_connect(m.enc_rnn, m.dec_rnn, source_l)
@@ -786,7 +789,8 @@ function eval(m, criterion, data)
         local target, target_out, nonzeros, source = d[1], d[2], d[3], d[4]
         local batch_l, target_l, source_l = d[5], d[6], d[7]
         if opt.model_type == 'hred' then source_l = opt.utter_context end
-
+        source = source:t()
+        target = target:t()
         -- Forward prop enc
         local enc_out = m.enc:forward(source)
 
