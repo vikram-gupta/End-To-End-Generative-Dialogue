@@ -230,11 +230,11 @@ def get_data(args):
     #prune and write vocab
     src_indexer.prune_vocab(args.srcvocabsize)
     target_indexer.prune_vocab(args.targetvocabsize)
-    if args.srcvocabfile != '':
+    if args.useExisitingVocabFile == "true":
         # You can try and load vocabulary here for both the source and target files 
         print('Loading pre-specified source vocab from ' + args.srcvocabfile)
         src_indexer.load_vocab(args.srcvocabfile)
-    if args.targetvocabfile != '':
+    if args.targetvocabfile =="true":
         print('Loading pre-specified target vocab from ' + args.targetvocabfile)
         target_indexer.load_vocab(args.targetvocabfile)
         
@@ -277,7 +277,7 @@ def format_data(args):
         for data_set in args.input_files:
             data_dict[data_set] = {}
             for var_name, data_file in args.input_files[data_set].iteritems():
-                with open('%s%s/%s' % (args.input_directory, data_set, data_file)) as f:
+                with open('%s/%s' % (args.input_directory, data_file)) as f:
                     data_dict[data_set][var_name] = f.readlines()
 
         return data_dict
@@ -301,23 +301,10 @@ def format_data(args):
             for i in range(1, len(indices_to_word)+1):
                 f.write(indices_to_word[i] + ' ' + str(i) + '\n')
 
-    def write_words_to_file(filename, indices_dict):
-        '''
-            Write the examples to files as words, removing special
-            indices
-        '''
-        lst = []
-        for context in indices_dict:
-            context_words = []
-            for ind in context:
-                if ind not in special_indices:
-                    context_words.append(indices_to_word[ind])
-            lst.append(' '.join(context_words))
-
-
+    def write_words_to_file(filename, listOfSentencesToWrite):
         f =  open(filename, 'w')
-        for context in lst: 
-            f.write(str(context) + ' \n')
+        for sentence in listOfSentencesToWrite:
+            f.write(sentence + ' \n')
         f.close()
 
     # Load in datafiles
@@ -329,7 +316,7 @@ def format_data(args):
     data_set_contexts = []
     data_set_outputs = []
 
-    data_sets = data_dict
+    data_sets = [data_dict[args.data_name]['train_set'], data_dict[args.data_name]['valid_set']]
 
     for j in range(len(data_sets)):
         data_set = data_sets[j]
@@ -340,14 +327,8 @@ def format_data(args):
         for i in range(len(data_set)):
 
             toks = data_set[i].split("-delimit-")
-            context = toks[0]
-            output = toks[1]
-
-            # Cap the target and src length at 302 words to make computation simpler, goes up to ~1500
-            if len(context) > max_len_context:
-                continue
-            if len(output) > max_len_output:
-                continue
+            context = toks[0].strip()
+            output = toks[1].strip()
 
             full_context.append(context)
             full_output.append(output)
@@ -386,21 +367,22 @@ def main(arguments):
                                        "Can be an absolute count limit (if > 1) "
                                        "or a proportional limit (0 < unkfilter < 1).",
                                           type = float, default = 0)
-
     args = parser.parse_args(arguments)
 
-
-    args.input_directory = "../data/"+data_name+"/input"
-    args.output_directory = "../data/"+data_name+"/output"
+    args.data_name = "Jerry"
+    args.input_directory = "../data/"+data_name+"/input/"
+    args.output_directory = "../data/"+data_name+"/output/"
     args.outputfile = data_name
 
-    #dictionary
+    #precalcualted dictionary
+    args.useExisitingVocabFile = "false"
     args.srcvocabfile = 'src.dict'
     args.targetvocabfile = 'targ.dict'
 
+
     # Vocabularys
-    args.srcvocabsize = 10000
-    args.targetvocabsize = 10000
+    args.srcvocabsize = 50000
+    args.targetvocabsize = 50000
 
     # Output files in words
     args.srcfile ='train_src_words.txt'
@@ -409,7 +391,13 @@ def main(arguments):
     args.srcvalfile = 'dev_src_words.txt'
     args.targetvalfile = 'dev_targ_words.txt'
 
-    args.input_files = { 'KiwiData' : { 'train_set' : data_name+'Train.txt',
+    args.srcfile_ind='train_src_indices.txt'
+    args.targetfile_ind = 'train_src_indices.txt'
+
+    args.srcvalfile_ind = 'dev_src_indices.txt'
+    args.targetvalfile_ind = 'dev_src_indices.txt'
+
+    args.input_files = { data_name : { 'train_set' : data_name+'Train.txt',
                                            'valid_set' : data_name+'Validation.txt',
                                        }
                         }

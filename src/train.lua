@@ -69,7 +69,7 @@ cmd:option('-fix_word_vecs',    0,      'If = 1, fix lookup table word embedding
 cmd:option('-beam_k',           5,      'K value to use with beam search')
 cmd:option('-max_bleu',         4,      'The number of n-grams used in calculating the bleu score')
 
-cmd:option('-pre_word_vecs',    'data/word_vecs.hdf5', 'If a valid path is specified, then this will load pretrained word embeddings (hdf5 file) on the encoder side. See README for specific formatting instructions.')
+cmd:option('-pre_word_vecs',    '', 'If a valid path is specified, then this will load pretrained word embeddings (hdf5 file) on the encoder side. See README for specific formatting instructions.')
 
 -- cmd:option('-curriculum',    0,      'For this many epochs, order the minibatches based on source
 --                                       sequence length. Sometimes setting this to 1 will increase convergence speed.')
